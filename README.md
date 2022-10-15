@@ -1,8 +1,7 @@
 # Demo Flask
+This project uses Python 3.6.
 
 ## Dependencies
-You may need to install [sqlcipher](https://www.zetetic.net/sqlcipher/open-source/).
-
 To install the required dependencies, please follow these steps:
 
 1. Open a console.

@@ -1,4 +1,4 @@
-from pysqlcipher3 import dbapi2 as sqlite3
+import sqlite3
 from . import dbc
 
 import click
@@ -12,9 +12,7 @@ def get_db():
             detect_types=sqlite3.PARSE_DECLTYPES
         )
         g.db.row_factory = sqlite3.Row 
-     
-    command = 'pragma key="{}"'.format(dbc.DBP)    
-    g.db.execute(command)
+    
     return g.db
 
 

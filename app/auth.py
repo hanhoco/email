@@ -20,11 +20,11 @@ def activate():
     try:
         if g.user:
             return redirect(url_for('inbox.show'))
-        
-        if request.method == 'GET': #?(1)
-            number = request.args['auth'] 
-            
-            db = get_db() #?(2)
+
+        if request.method == 'GET':
+            number = request.args['auth']
+
+            db = get_db()
             attempt = db.execute(
                 'SELECT * FROM activationlink WHERE challenge=? AND state=? AND CURRENT_TIMESTAMP BETWEEN created AND validuntil', (number, utils.U_UNCONFIRMED)
             ).fetchone()
@@ -44,31 +44,31 @@ def activate():
         return redirect(url_for('auth.login'))
 
 
-@bp.route('/register', methods=('GET','POST')) #?(3)
+@bp.route('/register', methods=('GET','POST'))
 def register():
     try:
         if g.user:
             return redirect(url_for('inbox.show'))
-      
-        if request.method == 'POST': #?(4)   
-            username = request.form['username'] #?(5)
-            password = request.form['password'] #?(6)
-            email = request.form['email'] #?(7)
-            
-            db = get_db() #?(8)
+
+        if request.method == 'POST':
+            username = request.form['username']
+            password = request.form['password']
+            email = request.form['email']
+
+            db = get_db()
             error = None
 
-            if not username: #?(9)
+            if not username:
                 error = 'Username is required.'
                 flash(error)
-                return render_template(TEMP)
-            
+                return render_template('auth/register.html')
+
             if not utils.isUsernameValid(username):
                 error = "Username should be alphanumeric plus '.','_','-'"
                 flash(error)
-                return render_template(TEMP)
+                return render_template('auth/register.html')
 
-            if not password: #?(10)
+            if not password:
                 error = 'Password is required.'
                 flash(error)
                 return render_template('auth/register.html')
@@ -76,18 +76,18 @@ def register():
             if db.execute('SELECT id FROM user WHERE username=?', (username,)).fetchone() is not None:
                 error = 'User {} is already registered.'.format(username)
                 flash(error)
-                return render_template(TEMP)
-            
-            if (not email or (not utils.isEmailValid(email))): #?(11)
-                error =  'Email address invalid.'
+                return render_template('auth/register.html')
+
+            if (not email or (not utils.isEmailValid(email))):
+                error = 'Email address invalid.'
                 flash(error)
                 return render_template('auth/register.html')
-            
+
             if db.execute('SELECT id FROM user WHERE email = ?', (email,)).fetchone() is not None:
                 error =  'Email {} is already registered.'.format(email)
                 flash(error)
-                return render_template(TEMP)
-            
+                return render_template('auth/register.html')
+
             if (not utils.isPasswordValid(password)):
                 error = 'Password should contain at least a lowercase letter, an uppercase letter and a number with 8 characters long'
                 flash(error)
@@ -108,60 +108,60 @@ def register():
             ).fetchone()
 
             content = 'Hello there, to activate your account, please click on this link ' + flask.url_for('auth.activate', _external=True) + '?auth=' + number
-            
+            print(content)
             send_email(credentials, receiver=email, subject='Activate your account', message=content)
-            
-            flash('Please check in your registered email to activate your account')
-            return render_template('auth/login.html') 
 
-        return render_template(TEMP) 
+            flash('Please check in your registered email to activate your account')
+            return render_template('auth/login.html')
+
+        return render_template('auth/register.html')
     except:
         return render_template('auth/register.html')
 
-    
-@bp.route('/confirm', methods=('GET', 'POST')) #?(12)
+
+@bp.route('/confirm', methods=('GET', 'POST'))
 def confirm():
     try:
         if g.user:
             return redirect(url_for('inbox.show'))
 
-        if request.method == 'POST':  #?(13)
-            password = request.form['password']  #?(14)
-            password1 = request.form['password1'] #?(15)
+        if request.method == 'POST':
+            password = request.form['password']
+            password1 = request.form['password1']
             authid = request.form['authid']
 
             if not authid:
                 flash('Invalid')
                 return render_template('auth/forgot.html')
 
-            if not password: #?(16)
+            if not password:
                 flash('Password required')
                 return render_template('auth/change.html', number=authid)
 
             if not password1:
                 flash('Password confirmation required')
-                return render_template(TEMP, number=authid)
+                return render_template('auth/change.html', number=authid)
 
-            if password1 != password: #?(17)
+            if password1 != password:
                 flash('Both values should be the same')
-                return render_template(TEMP, number=authid)
+                return render_template('auth/change.html', number=authid)
 
             if not utils.isPasswordValid(password):
                 error = 'Password should contain at least a lowercase letter, an uppercase letter and a number with 8 characters long.'
                 flash(error)
                 return render_template('auth/change.html', number=authid)
 
-            db = get_db() #?(18)
+            db = get_db()
             attempt = db.execute(
                 'SELECT * FROM forgotlink WHERE challenge=? AND state=? AND CURRENT_TIMESTAMP BETWEEN created AND validuntil', (authid, utils.F_ACTIVE)
             ).fetchone()
-            
+
             if attempt is not None:
                 db.execute(
                     'UPDATE forgotlink SET state=? WHERE id=?', (utils.F_INACTIVE, attempt['id'])
                 )
                 salt = hex(random.getrandbits(128))[2:]
-                hashP = generate_password_hash(password + salt)   
+                hashP = generate_password_hash(password + salt)
                 db.execute(
                     'UPDATE user SET password=?, salt=? WHERE id=?', (hashP, salt, attempt['userid'])
                 )
@@ -171,7 +171,7 @@ def confirm():
                 flash('Invalid')
                 return render_template('auth/forgot.html')
 
-        return render_template(TEMP)
+        return render_template('auth/forgot.html')
     except:
         return render_template('auth/forgot.html')
 
@@ -181,21 +181,21 @@ def change():
     try:
         if g.user:
             return redirect(url_for('inbox.show'))
-        
-        if request.method == 'GET': #?(19)
-            number = request.args['auth'] 
-            
-            db = get_db() #?(20)
+
+        if request.method == 'GET':
+            number = request.args['auth']
+
+            db = get_db()
             attempt = db.execute(
                 'SELECT *FROM forgotlink WHERE challenge=? AND state=? AND CURRENT_TIMESTAMP BETWEEN created AND validuntil', (number, utils.F_ACTIVE)
             ).fetchone()
-            
+
             if attempt is not None:
                 return render_template('auth/change.html', number=number)
-        
+
         return render_template('auth/forgot.html')
     except:
-        return render_template(TEMP)
+        return render_template('auth/forgot.html')
 
 
 @bp.route('/forgot', methods=('GET', 'POST'))
@@ -203,11 +203,11 @@ def forgot():
     try:
         if g.user:
             return redirect(url_for('inbox.show'))
-        
+
         if request.method == 'POST':
-            email = request.form['email'] #?(21)
-            
-            if ((not email) or (not utils.isEmailValid(email))): #?(22)
+            email = request.form['email']
+
+            if ((not email) or (not utils.isEmailValid(email))):
                 error = 'Email Address Invalid'
                 flash(error)
                 return render_template('auth/forgot.html')
@@ -219,7 +219,7 @@ def forgot():
 
             if user is not None:
                 number = hex(random.getrandbits(512))[2:]
-                
+
                 db.execute(
                     'UPDATE forgotlink SET state=? WHERE userid=?',
                     (utils.F_INACTIVE, user['id'])
@@ -229,71 +229,71 @@ def forgot():
                     (user['id'], number, utils.F_ACTIVE)
                 )
                 db.commit()
-                
+
                 credentials = db.execute(
                     'Select user,password from credentials where name=?',(utils.EMAIL_APP,)
                 ).fetchone()
-                
+
                 content = 'Hello there, to change your password, please click on this link ' + flask.url_for('auth.change', _external=True) + '?auth=' + number
-                
+                print(content)
                 send_email(credentials, receiver=email, subject='New Password', message=content)
-                
+
                 flash('Please check in your registered email')
             else:
                 error = 'Email is not registered'
-                flash(error)            
+                flash(error)
 
         return render_template('auth/forgot.html')
     except:
-        return render_template(TEMP)
+        return render_template('auth/forgot.html')
 
 
-@bp.route('/login', methods=('GET','POST')) #?(23)
+@bp.route('/login', methods=('GET','POST'))
 def login():
     try:
         if g.user:
             return redirect(url_for('inbox.show'))
 
-        if request.method == 'POST': #?(24)
-            username = request.form['username'] #?(25)
-            password = request.form['password'] #?(26)
+        if request.method == 'POST':
+            username = request.form['username']
+            password = request.form['password']
 
-            if not username: #?(27)
+            if not username:
                 error = 'Username Field Required'
                 flash(error)
                 return render_template('auth/login.html')
 
-            if not password: #?(28)
+            if not password:
                 error = 'Password Field Required'
                 flash(error)
-                return render_template(TEMP)
+                return render_template('auth/login.html')
 
-            db = get_db() #?(29)
+            db = get_db()
             error = None
             user = db.execute(
                 'SELECT * FROM user WHERE username = ?', (username,)
             ).fetchone()
-            
-            if username is None: #?(30)
+
+            if username is None:
                 error = 'Incorrect username or password'
             elif not check_password_hash(user['password'], password + user['salt']):
-                error = 'Incorrect username or password'   
+                error = 'Incorrect username or password'
 
             if error is None:
                 session.clear()
-                session['user_id'] = user['id'] #?(31)
+                session['user_id'] = user['id']
                 return redirect(url_for('inbox.show'))
 
             flash(error)
 
-        return render_template(TEMP)
+        return render_template('auth/login.html')
     except:
         return render_template('auth/login.html')
-        
+
 
 @bp.before_app_request
 def load_logged_in_user():
-    user_id = session.get('user_id') #?(32)
+    user_id = session.get('user_id')
 
     if user_id is None:
         g.user = None
@@ -302,10 +302,10 @@ def load_logged_in_user():
             'SELECT *FROM user WHERE id=?', (user_id,)
         ).fetchone()
 
-        
+
 @bp.route('/logout')
 def logout():
-    session.clear() #?(33)
+    session.clear()
     return redirect(url_for('auth.login'))
 
 

@@ -16,12 +16,12 @@ def getDB():
 @bp.route('/show')
 @login_required
 def show():
-    db = get_db() # ? (1)
+    db = get_db()
     messages = db.execute(
         "SELECT message.subject, user.username, message.created, message.body FROM message JOIN user on message.from_id=user.id WHERE message.to_id="+str(g.user['id'])+" ORDER BY message.created desc"
     ).fetchall()
 
-    return render_template(TEMP, messages=messages)
+    return render_template('inbox/show.html', messages=messages)
 
 
 @bp.route('/send', methods=('GET', 'POST'))
@@ -29,23 +29,23 @@ def show():
 def send():
     if request.method == 'POST':        
         from_id = g.user['id']
-        to_username = request.form["to"] # ?(2)
-        subject = request.form["subject"] # ?(3)
-        body = request.form["body"] # ?(4)
+        to_username = request.form["to"]
+        subject = request.form["subject"]
+        body = request.form["body"]
 
-        db = get_db() # ?(5)
+        db = get_db()
        
         if not to_username:
             flash('To field is required')
-            return render_template(TEMP)
+            return render_template('inbox/send.html')
         
-        if not subject: # ?(6)
+        if not subject:
             flash('Subject field is required')
             return render_template('inbox/send.html')
         
-        if not body: # ?(7)
+        if not body:
             flash('Body field is required')
-            return render_template(TEMP)    
+            return render_template('inbox/send.html')    
         
         error = None    
         userto = None 
@@ -60,7 +60,7 @@ def send():
         if error is not None:
             flash(error)
         else:
-            db = get_db() # ?(8)
+            db = get_db()
             db.execute(
                 "insert into message (from_id,to_id,subject,body) values (?,?,?,?)",
                 (g.user['id'], userto['id'], subject, body)
